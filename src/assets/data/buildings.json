@@ -1,0 +1,16 @@
+[
+  {
+    "position": {
+      "lat": 59.939859,
+      "lng": 30.299563,
+      "rotate": 0.18
+    },
+    "type": "box",
+    "size": {
+      "width": 19,
+      "height": 8,
+      "depth": 10
+    },
+    "id": 1
+  }
+]
