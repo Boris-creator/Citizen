@@ -7,9 +7,9 @@
 import * as THREE from 'three'
 import { createLights } from '@/services/light'
 import { createControls } from '@/services/controls'
-import { ground, grid } from '@/services/ground'
+import { renderGround } from '@/services/ground'
 import { THEMES } from '@/constants/themes'
-import { renderBuilding, deserializeBuilding } from '@/services/renderBuilding'
+import { renderBuildingInterior, deserializeBuilding } from '@/services/renderBuildingInterior'
 import { computed, onMounted, ref, watch } from 'vue'
 import { WebGLRenderer } from 'three'
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
@@ -18,7 +18,7 @@ import { useBuildingsStore } from '@/stores/buildings'
 const buildingInterior = computed(() => useBuildingsStore().buildingInterior)
 const scene = new THREE.Scene()
 const renderer = ref<THREE.WebGLRenderer>()
-const theme = THEMES.ukrainianDay
+const theme = THEMES.default
 
 const MESH_NAME = 'interior'
 
@@ -30,6 +30,7 @@ const canvasElement = ref<HTMLCanvasElement | null>(null)
 const { ambientLight, mainLight } = createLights()
 scene.add(ambientLight, mainLight)
 
+const { ground, grid } = renderGround(theme)
 scene.add(ground, ...grid)
 
 function loop(renderer: WebGLRenderer, controls: OrbitControls) {
@@ -41,12 +42,11 @@ function loop(renderer: WebGLRenderer, controls: OrbitControls) {
 }
 
 function setSceneSize() {
-  renderer.value.setSize(window.innerWidth / 2, window.innerHeight / 2)
+  ;(renderer.value as WebGLRenderer).setSize(window.innerWidth / 2, window.innerHeight / 2)
 }
 onMounted(() => {
   renderer.value = new THREE.WebGLRenderer({ canvas: canvasElement.value as HTMLCanvasElement })
   setSceneSize()
-  //document.body.appendChild( renderer.domElement );
   const controls = createControls(camera, renderer.value.domElement)
   loop(renderer.value, controls)
 })
@@ -57,7 +57,7 @@ watch(buildingInterior, (interior) => {
     scene.remove(interiorMesh)
   }
   if (interior !== null) {
-    scene.add(renderBuilding(deserializeBuilding(interior), MESH_NAME))
+    scene.add(renderBuildingInterior(deserializeBuilding(interior), MESH_NAME))
   }
 })
 </script>

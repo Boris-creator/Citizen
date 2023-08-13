@@ -2,10 +2,10 @@ import type { Building, BuildingSerialized } from '@/types/interior'
 import { ExtrudeGeometry, Mesh, MeshStandardMaterial, Path, Shape, Vector2 } from 'three'
 // @ts-ignore
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js'
-import interiors from '@/assets/data/interiors.json'
 import * as THREE from 'three'
 
 const toVector = (coords: number[]) => new Vector2(...coords)
+
 export function deserializeBuilding(buildingData: BuildingSerialized): Building {
   return {
     ...buildingData,
@@ -20,11 +20,8 @@ export function deserializeBuilding(buildingData: BuildingSerialized): Building 
     }))
   }
 }
-const buildingData: BuildingSerialized = interiors[0]
 
-export const building = deserializeBuilding(buildingData)
-
-export function renderBuilding(building: Building, name = '') {
+export function renderBuildingInterior(building: Building, name = '') {
   const buildingBase = 0.1
   const floorLevels = building.floors
     .sort((floor1, floor2) => floor1.number - floor2.number)

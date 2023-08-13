@@ -11,6 +11,11 @@ export const useBuildingsStore = defineStore('buildings', () => {
   const setBuilding = (building: BuildingData | null) => {
     selectedBuilding.value = building
   }
+  const addBuilding = (building: BuildingData) => {
+    building.id = Math.max(...buildings.value.map(({ id }) => id)) + 1
+    buildings.value.push(building)
+  }
+
   const buildingInterior = computed<BuildingSerialized | null>(() => {
     return interiorsData.find((interior) => interior.id === selectedBuilding.value?.id) ?? null
   })
@@ -18,6 +23,7 @@ export const useBuildingsStore = defineStore('buildings', () => {
     selectedBuilding,
     buildings,
     buildingInterior,
-    setBuilding
+    setBuilding,
+    addBuilding
   }
 })

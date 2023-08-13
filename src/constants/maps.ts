@@ -9,3 +9,6 @@ export const MAP_OPTIONS = {
   heading: 45,
   tilt: 90
 }
+
+export const PRECISION = 10 ** -4
+export const DEFAULT_BUILDING_HEIGHT = 20
