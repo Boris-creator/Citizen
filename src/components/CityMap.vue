@@ -1,5 +1,10 @@
 <template>
-  <div ref="mapElement" class="map__wrapper"></div>
+  <div class="map">
+    <button class="map__tools" @click="toggleMapInteractionMode">
+      {{ mapInteractionMode ? 'Режим просмотра' : 'Добавить объект' }}
+    </button>
+    <div ref="mapElement" class="map__wrapper"></div>
+  </div>
 </template>
 <script setup lang="ts">
 import type { ThreeJSOverlayView } from '@googlemaps/three'
@@ -12,15 +17,32 @@ import { DEFAULT_BUILDING_HEIGHT, MAP_OPTIONS } from '@/constants/maps'
 import LatLng = google.maps.LatLng
 import { renderBuildingExterior } from '@/services/renderBuildingExterior'
 import { initMap } from '@/services/initMap'
+import DrawingManager = google.maps.drawing.DrawingManager
 
 const buildings: Map<`${number}`, BuildingData> = new Map()
 const buildingsData = computed<Array<BuildingData>>(() => useBuildingsStore().buildings)
 
 const mapElement = ref<HTMLElement | null>(null)
+const drawingTools = ref<DrawingManager | null>(null)
+const mapInteractionMode = computed({
+  get() {
+    return drawingTools.value?.getDrawingMode() ?? null
+  },
+  set(value) {
+    if (drawingTools.value !== null) {
+      drawingTools.value.setDrawingMode(value)
+    }
+  }
+})
+const toggleMapInteractionMode = () => {
+  mapInteractionMode.value = mapInteractionMode.value
+    ? null
+    : google.maps.drawing.OverlayType.POLYGON
+}
 
 function renderBuildings(buildingsToRender: Array<BuildingData>, context: ThreeJSOverlayView) {
   buildingsToRender.forEach((building) => {
-    const buildingId = `${building.id}`
+    const buildingId = `${building.id}` as `${number}`
     if (buildings.has(buildingId)) {
       return
     }
@@ -38,12 +60,15 @@ function renderBuildings(buildingsToRender: Array<BuildingData>, context: ThreeJ
 
 onMounted(async () => {
   const { context, drawer, selectedObjects } = await initMap(mapElement.value as HTMLElement)
+
+  drawingTools.value = drawer
+
   renderBuildings(buildingsData.value, context)
   watchEffect(() => {
     renderBuildings(buildingsData.value, context)
   })
   watchEffect(() => {
-    const selectedBuilding = buildings.get(selectedObjects.value[0]?.name) ?? null
+    const selectedBuilding = buildings.get(selectedObjects.value[0]?.name as `${number}`) ?? null
     useBuildingsStore().setBuilding(selectedBuilding)
   })
 
@@ -57,12 +82,15 @@ onMounted(async () => {
   column.position.copy(context.latLngAltitudeToVector3(MAP_OPTIONS.center))
   context.scene.add(column)
 
-  drawer.addListener('overlaycomplete', (event) => {
+  drawer.addListener('overlaycomplete', (event: google.maps.drawing.OverlayCompleteEvent) => {
     if (event.type !== 'polygon') {
       return
     }
+    const polygon = event.overlay as google.maps.Polygon
+    //@ts-ignore
     event.overlay.editable = false
-    const coordinates = event.overlay.getPath().g as Array<LatLng>
+    //@ts-ignore
+    const coordinates = polygon.getPath().g as Array<LatLng>
     const path = coordinates.map((point) => {
       const vector3 = context.latLngAltitudeToVector3(point)
       return { x: vector3.x, y: vector3.z }
@@ -80,8 +108,19 @@ onMounted(async () => {
 })
 </script>
 <style scoped lang="scss">
-.map__wrapper {
-  width: 50vw;
-  height: 50vh;
+.map {
+  position: relative;
+  &__wrapper {
+    width: 50vw;
+    height: 50vh;
+  }
+  &__tools {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 1;
+    padding: 0.5rem;
+    cursor: pointer;
+  }
 }
 </style>

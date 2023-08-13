@@ -10,6 +10,7 @@ export async function initMap(mapElement: HTMLElement) {
     version: 'weekly',
     libraries: ['places', 'drawing']
   })
+
   const { Map: GoogleMap } = await loader.importLibrary('maps')
   const selectedObjects = ref<Array<THREE.Object3D>>([])
   //map = new Map(mapElement, MAP_OPTIONS);
@@ -30,7 +31,8 @@ export async function initMap(mapElement: HTMLElement) {
   const mapDiv = map.getDiv()
 
   map.addListener('click', (ev: google.maps.MapMouseEvent) => {
-    const { domEvent, latLng } = ev
+    const domEvent = ev.domEvent as MouseEvent
+    const latLng = ev.latLng as google.maps.LatLng
     const { left, top, width, height } = mapDiv.getBoundingClientRect()
     const x = domEvent.clientX - left
     const y = domEvent.clientY - top
@@ -44,10 +46,10 @@ export async function initMap(mapElement: HTMLElement) {
 
     if (selectedObjects.value.length) {
       if (
-        Math.abs(map.getCenter()?.lat() - latLng.lat()) > PRECISION &&
-        Math.abs(map.getCenter()?.lng() - latLng.lng()) > PRECISION
+        Math.abs((map.getCenter()?.lat() ?? 0) - latLng.lat()) > PRECISION &&
+        Math.abs((map.getCenter()?.lng() ?? 0) - latLng.lng()) > PRECISION
       ) {
-        map.setZoom(map.getZoom() * 1.1)
+        map.setZoom((map.getZoom() ?? MAP_OPTIONS.zoom) * 1.1)
         map.panTo(latLng)
       }
     }
@@ -56,9 +58,9 @@ export async function initMap(mapElement: HTMLElement) {
   })
 
   const drawingManager = new google.maps.drawing.DrawingManager({
-    drawingControl: true,
+    drawingControl: false,
     drawingControlOptions: {
-      position: google.maps.ControlPosition.TOP_RIGHT,
+      //position: google.maps.ControlPosition.TOP_RIGHT
       drawingModes: [google.maps.drawing.OverlayType.POLYGON]
     },
     markerOptions: {
