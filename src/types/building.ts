@@ -1,3 +1,4 @@
+export type Vector2Data = { x: number; y: number }
 export type BuildingData = {
   id: number | null
 } & (
@@ -16,7 +17,7 @@ export type BuildingData = {
     }
   | {
       type: 'polygon'
-      corners: Array<{ x: number; y: number }>
+      corners: Array<Vector2Data>
       size: {
         height: number
       }

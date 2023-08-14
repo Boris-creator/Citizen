@@ -11,13 +11,13 @@ import type { ThreeJSOverlayView } from '@googlemaps/three'
 import * as THREE from 'three'
 import { computed, onMounted, ref, watchEffect } from 'vue'
 import { useBuildingsStore } from '@/stores/buildings'
-import type { BuildingData } from '@/types/building'
+import type { BuildingData, Vector2Data } from '@/types/building'
 import { DEFAULT_BUILDING_HEIGHT, MAP_OPTIONS } from '@/constants/maps'
-
 import LatLng = google.maps.LatLng
 import { renderBuildingExterior } from '@/services/renderBuildingExterior'
 import { initMap } from '@/services/initMap'
 import DrawingManager = google.maps.drawing.DrawingManager
+import validateBuildingPosition from '@/helpers/validateBuildingPosition'
 
 const buildings: Map<`${number}`, BuildingData> = new Map()
 const buildingsData = computed<Array<BuildingData>>(() => useBuildingsStore().buildings)
@@ -95,6 +95,12 @@ onMounted(async () => {
       const vector3 = context.latLngAltitudeToVector3(point)
       return { x: vector3.x, y: vector3.z }
     })
+
+    if (!validateBuildingPosition(path, buildingsData.value)) {
+      polygon.setMap(null)
+      return
+    }
+
     const newBuilding: BuildingData = {
       type: 'polygon',
       corners: path,
