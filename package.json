@@ -18,6 +18,7 @@
     "@googlemaps/three": "^4.0.4",
     "@turf/boolean-intersects": "^6.5.0",
     "@turf/turf": "^6.5.0",
+    "@vueuse/core": "^10.3.0",
     "pinia": "^2.1.4",
     "three": "^0.155.0",
     "vue": "^3.3.4",
