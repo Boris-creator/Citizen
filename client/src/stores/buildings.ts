@@ -1,7 +1,6 @@
 import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import buildingsData from '@/assets/data/buildings.json'
-import interiorsData from '@/assets/data/interiors.json'
 import type { BuildingSerialized } from '@/types/interior'
 import type { BuildingData } from '@/types/building'
 import useApiFetch from '@/composables/useApiFetch'
@@ -20,13 +19,13 @@ export const useBuildingsStore = defineStore('buildings', () => {
   const { data: buildingInteriors, execute } = useApiFetch<Array<BuildingSerialized>>(
     () =>
       `${API_ROUTES.buildings.prefix}/${selectedBuilding.value?.id}${API_ROUTES.buildings.interiors}`,
-    { immediate: false, initialData: interiorsData }
+    { immediate: false, initialData: [] }
   )
     .post()
     .json()
 
-  const buildingInterior = computed<BuildingSerialized>(
-    () => buildingInteriors.value[0] ?? interiorsData[0]
+  const buildingInterior = computed<BuildingSerialized | null>(
+    () => buildingInteriors.value[0] ?? null
   )
 
   watch(selectedBuilding, (value) => {

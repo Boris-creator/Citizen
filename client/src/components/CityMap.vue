@@ -14,7 +14,7 @@ import { useBuildingsStore } from '@/stores/buildings'
 import type { BuildingData, StoredBuilding } from '@/types/building'
 import { DEFAULT_BUILDING_HEIGHT, MAP_OPTIONS, MAX_BUILDING_AREA } from '@/constants/maps'
 import LatLng = google.maps.LatLng
-import { renderBuildingExterior } from '@/services/renderBuildingExterior'
+import { renderBuildingExterior, renderPillar } from '@/services/renderBuildingExterior'
 import { initMap } from '@/services/initMap'
 import DrawingManager = google.maps.drawing.DrawingManager
 import validateBuildingPosition from '@/helpers/validateBuilding'
@@ -110,15 +110,9 @@ onMounted(async () => {
 
   const prepare = (building: StoredBuilding) => prepareBuildingForRender(building, context)
 
-  const column = new THREE.Mesh(
-    new THREE.CylinderGeometry(5, 5, 50, 16, 2),
-    new THREE.MeshMatcapMaterial()
-  )
-  const { min, max } = new THREE.Box3().setFromObject(column)
-  const boxHeight = max.y - min.y
-  column.geometry.translate(0, boxHeight / 2, 0)
-  column.position.copy(context.latLngAltitudeToVector3(MAP_OPTIONS.center))
-  context.scene.add(column)
+  const pillar = renderPillar()
+  pillar.position.copy(context.latLngAltitudeToVector3(MAP_OPTIONS.center))
+  context.scene.add(pillar)
 
   let polygon: google.maps.Polygon | null = null
   onCreateError(() => {
@@ -173,7 +167,6 @@ onMounted(async () => {
 
   watchEffect(() => {
     const selectedBuilding = buildings.get(selectedObjects.value[0]?.name as `${number}`) ?? null
-    console.log(selectedObjects.value[0]?.name)
     useBuildingsStore().setBuilding(selectedBuilding)
   })
 })
