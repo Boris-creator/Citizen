@@ -2,13 +2,14 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\BuildingService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Models\Building;
 
-use Location\Coordinate;
-use Location\Polygon;
+use App\Services\BuildingBargainService;
+
 use Location\Intersection;
 
 class ValidateBuildingPosition
@@ -16,13 +17,14 @@ class ValidateBuildingPosition
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param Closure(Request): (Response) $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $polygon = $this->makePolygon($request->input('corners'));
+        $buildingService = (new BuildingService())->from($request);
+        $polygon = $buildingService->getCornersPolygon();
 
-        if ($polygon -> getArea() >= 20000)
+        if ($buildingService->getArea() >= config('constants.MAX_BUILDING_SQUARE'))
         {
             abort(Response::HTTP_BAD_REQUEST, 'Too large');
         }
@@ -30,23 +32,18 @@ class ValidateBuildingPosition
         $buildings = Building::query()->get();
         foreach ($buildings as $building)
         {
-            $buildingPolygon = $this->makePolygon($building['corners']);
+            $buildingPolygon = (new BuildingService())->from($building)->getCornersPolygon();
             if ((new Intersection\Intersection())->intersects($polygon, $buildingPolygon, true))
             {
                 abort(Response::HTTP_BAD_REQUEST, 'Respect your neighbours');
             }
         }
 
-        return $next($request);
-    }
-
-    private function makePolygon(array $points): Polygon
-    {
-        $polygon = new Polygon();
-        foreach ($points as $corner)
+        if (!BuildingBargainService::checkUserBalance(BuildingBargainService::getMarketPrice($buildingService->getArea()), $request->user()))
         {
-            $polygon->addPoint(new Coordinate($corner['lat'], $corner['lng']));
+            abort(Response::HTTP_BAD_REQUEST, 'Too expensive for you, looser');
         }
-        return $polygon;
+
+        return $next($request);
     }
 }

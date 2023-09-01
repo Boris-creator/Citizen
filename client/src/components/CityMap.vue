@@ -8,7 +8,6 @@
 </template>
 <script setup lang="ts">
 import type { ThreeJSOverlayView } from '@googlemaps/three'
-import * as THREE from 'three'
 import { computed, onBeforeMount, onMounted, ref, watch, watchEffect } from 'vue'
 import { useBuildingsStore } from '@/stores/buildings'
 import type { BuildingData, StoredBuilding } from '@/types/building'
@@ -136,7 +135,7 @@ onMounted(async () => {
       !validatePolygonArea(polygon)
     ) {
       polygon.setMap(null)
-      return
+      //return
     }
 
     newBuildingPayload.value = {

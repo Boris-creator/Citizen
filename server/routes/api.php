@@ -20,12 +20,16 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::prefix('/buildings')->group(function () {
-    Route::post('/create', function () {
-        return app()->call([BuildingController::class, 'create']);
-    })->middleware(ValidateBuildingPosition::class);
-    Route::post('', function () {
-        return app()->call([BuildingController::class, 'search']);
-    });
-    Route::post('/{buildingId}/interiors', [BuildingController::class, 'getInteriors']);
+Route::post('/login', [\App\Http\Controllers\AuthController::class, 'authenticate']);
+
+Route::middleware('auth:sanctum')->
+    prefix('/buildings')->
+    group(function () {
+        Route::post('/create', function () {
+            return app()->call([BuildingController::class, 'create']);
+        })->middleware(ValidateBuildingPosition::class);
+        Route::post('', function () {
+            return app()->call([BuildingController::class, 'search']);
+        });
+        Route::post('/{buildingId}/interiors', [BuildingController::class, 'getInteriors']);
 });

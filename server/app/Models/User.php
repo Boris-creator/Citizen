@@ -31,6 +31,11 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'email_verified_at'
+    ];
+
+    protected $guarded = [
+        'balance'
     ];
 
     /**
@@ -41,5 +46,6 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'balance' => 'float'
     ];
 }

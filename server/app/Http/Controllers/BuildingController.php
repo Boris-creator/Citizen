@@ -3,8 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\BuildingStoreRequest;
+use App\Models\BuildingBargain;
+use App\Services\BuildingService;
 use Illuminate\Http\JsonResponse;
 use App\Models\Building;
+
+use App\Services\BuildingBargainService;
 
 class BuildingController extends Controller
 {
@@ -16,6 +20,13 @@ class BuildingController extends Controller
             'floorsCount' => $building['floorsCount'],
             'name' => $building['name']
         ]);
+
+        $buildingArea = (new BuildingService())->from($newBuilding)->getArea();
+        BuildingBargainService::makeLandBargain(
+            $newBuilding,
+            BuildingBargainService::getMarketPrice($buildingArea),
+            ['buyer' => request() -> user()]
+        );
 
         return response()->json($newBuilding);
     }
