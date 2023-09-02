@@ -22,8 +22,6 @@ class BuildingStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'position.lat' => 'required|numeric',
-            'position.lng' => 'required|numeric',
             'corners.*.lat' => 'required|numeric',
             'corners.*.lng' => 'required|numeric',
             'height' => 'required|integer|min:0',
@@ -43,13 +41,11 @@ class BuildingStoreRequest extends FormRequest
     {
         return [
             function (Validator $validator) {
-                logger($validator->errors());
                 if ($validator->errors()->count() > 0)
                 {
                     return;
                 }
                 $buildingData = $this->request->all();
-                logger($buildingData);
                 $buildingArea = BuildingService::getArea($buildingData);
                 $polygon = BuildingService::getCornersPolygon($buildingData);
 
@@ -62,7 +58,8 @@ class BuildingStoreRequest extends FormRequest
                     //abort(Response::HTTP_BAD_REQUEST, 'Too large');
                 }
 
-                $buildings = BuildingService::findNearest($this->input('position'));
+                //$buildings = BuildingService::findNearest($this->input('position'));
+                $buildings = BuildingService::findNearest($buildingData);
                 foreach ($buildings as $building)
                 {
                     $buildingPolygon = BuildingService::getCornersPolygon($building);

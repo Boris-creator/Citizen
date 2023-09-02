@@ -24,8 +24,9 @@ class BuildingService {
         return Building::query()->get();
     }
 
-    public static function findNearest(array $position)
+    public static function findNearest($building)
     {
+        $position = self::getPosition($building);
         $scopeRadius = 0.1;
         return Building::query()
             ->whereRaw(
@@ -33,6 +34,16 @@ class BuildingService {
                 ['lat' => $position['lat'], 'lng' => $position['lng']/*, 'scopeLat' => $scopeRadius, 'scopeLng' => $scopeRadius*/]
             )
             ->get();
+    }
+
+    public static function getPosition($building): array
+    {
+        $cornersPolygon = self::getCornersPolygon($building);
+        $center = $cornersPolygon->getBounds()->getCenter();
+        return [
+            'lat' => $center->getLat(),
+            'lng' => $center->getLng()
+        ];
     }
 
     private static function makePolygon(array $points): Polygon

@@ -19,6 +19,7 @@ import DrawingManager = google.maps.drawing.DrawingManager
 import validateBuildingPosition from '@/helpers/validateBuilding'
 import useApiFetch from '@/composables/useApiFetch'
 import { API_ROUTES } from '@/constants/api'
+import { renderShip } from '@/services/renderShip'
 
 const buildings: Map<`${number}`, BuildingData> = new Map()
 
@@ -28,7 +29,7 @@ const { data: buildingsData, execute: searchBuildings } = useApiFetch<Array<Stor
 )
   .post()
   .json()
-const newBuildingPayload = ref<Omit<StoredBuilding, 'id'> | null>(null)
+const newBuildingPayload = ref<Omit<StoredBuilding, 'id' | 'position'> | null>(null)
 const {
   data: newBuilding,
   execute: createBuilding,
@@ -113,6 +114,11 @@ onMounted(async () => {
   pillar.position.copy(context.latLngAltitudeToVector3(MAP_OPTIONS.center))
   context.scene.add(pillar)
 
+  const ship = renderShip()
+  ship.position.copy(context.latLngAltitudeToVector3(MAP_OPTIONS.center))
+  ship.position.setY(90)
+  context.scene.add(ship)
+
   let polygon: google.maps.Polygon | null = null
   onCreateError(() => {
     if (polygon) {
@@ -140,7 +146,6 @@ onMounted(async () => {
 
     newBuildingPayload.value = {
       corners: coordinates,
-      position: coordinates[0],
       height: DEFAULT_BUILDING_HEIGHT,
       floorsCount: 1
     }

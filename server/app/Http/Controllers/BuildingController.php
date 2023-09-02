@@ -14,7 +14,7 @@ class BuildingController extends Controller
 {
     public static function create(BuildingStoreRequest $building): JsonResponse {
         $newBuilding = Building::query()->create([
-            'position' => $building['position'],
+            'position' => BuildingService::getPosition($building),
             'corners' => $building['corners'],
             'height' => $building['height'],
             'floorsCount' => $building['floorsCount'],
