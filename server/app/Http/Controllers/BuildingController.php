@@ -18,7 +18,8 @@ class BuildingController extends Controller
             'corners' => $building['corners'],
             'height' => $building['height'],
             'floorsCount' => $building['floorsCount'],
-            'name' => $building['name']
+            'name' => $building['name'],
+            'user_id' => request()->user()->id
         ]);
 
         $buildingArea = BuildingService::getArea($newBuilding);

@@ -19,6 +19,8 @@ return new class extends Migration
             $table->json('position');
             $table->json('corners');
             $table->string('name')->nullable();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->foreign('user_id')->references('id')->on('users');
         });
     }
 
