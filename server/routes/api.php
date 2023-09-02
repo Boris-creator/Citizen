@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\BuildingController;
-use App\Http\Middleware\ValidateBuildingPosition;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -27,7 +26,7 @@ Route::middleware('auth:sanctum')->
     group(function () {
         Route::post('/create', function () {
             return app()->call([BuildingController::class, 'create']);
-        })->middleware(ValidateBuildingPosition::class);
+        });
         Route::post('', function () {
             return app()->call([BuildingController::class, 'search']);
         });

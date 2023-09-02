@@ -2,7 +2,12 @@
 
 namespace App\Http\Requests;
 
+use App\Services\BuildingBargainService;
+use App\Services\BuildingService;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
+
+use Location\Intersection;
 
 class BuildingStoreRequest extends FormRequest
 {
@@ -14,11 +19,6 @@ class BuildingStoreRequest extends FormRequest
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array|string>
-     */
     public function rules(): array
     {
         return [
@@ -35,7 +35,56 @@ class BuildingStoreRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'floorsCount.integer' => 'you died'
+            'floorsCount.integer' => ''
+        ];
+    }
+
+    public function after(): array
+    {
+        return [
+            function (Validator $validator) {
+                logger($validator->errors());
+                if ($validator->errors()->count() > 0)
+                {
+                    return;
+                }
+                $buildingData = $this->request->all();
+                logger($buildingData);
+                $buildingArea = BuildingService::getArea($buildingData);
+                $polygon = BuildingService::getCornersPolygon($buildingData);
+
+                if ($buildingArea >= config('constants.MAX_BUILDING_SQUARE'))
+                {
+                    $validator->errors()->add(
+                        'corners',
+                        'Too large'
+                    );
+                    //abort(Response::HTTP_BAD_REQUEST, 'Too large');
+                }
+
+                $buildings = BuildingService::findNearest($this->input('position'));
+                foreach ($buildings as $building)
+                {
+                    $buildingPolygon = BuildingService::getCornersPolygon($building);
+                    if ((new Intersection\Intersection())->intersects($polygon, $buildingPolygon, true))
+                    {
+                        $validator->errors()->add(
+                            'position',
+                            'Respect your neighbours'
+                        );
+                        //abort(Response::HTTP_BAD_REQUEST, 'Respect your neighbours');
+                    }
+                }
+
+                if (!BuildingBargainService::checkUserBalance(BuildingBargainService::getMarketPrice($buildingArea), $this->user()))
+                {
+                    $validator->errors()->add(
+                        'position',
+                        'Too expensive for you, looser'
+                    );
+                    //abort(Response::HTTP_BAD_REQUEST, 'Too expensive for you, looser');
+                }
+            }
         ];
     }
 }

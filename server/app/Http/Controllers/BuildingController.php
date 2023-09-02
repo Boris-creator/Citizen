@@ -21,7 +21,7 @@ class BuildingController extends Controller
             'name' => $building['name']
         ]);
 
-        $buildingArea = (new BuildingService())->from($newBuilding)->getArea();
+        $buildingArea = BuildingService::getArea($newBuilding);
         BuildingBargainService::makeLandBargain(
             $newBuilding,
             BuildingBargainService::getMarketPrice($buildingArea),
@@ -32,7 +32,7 @@ class BuildingController extends Controller
     }
 
     public static function search(): JsonResponse {
-        return response()->json(Building::query()->get());
+        return response()->json(BuildingService::findAll());
     }
 
     public static function getInteriors(int $buildingId): JsonResponse

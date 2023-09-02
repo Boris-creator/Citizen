@@ -2,29 +2,40 @@
 
 namespace App\Services;
 
+use App\Models\Building;
 use Location\Coordinate;
 use Location\Polygon;
 
 class BuildingService {
-    protected array $corners;
 
-    public function from($building): static
+    public static function getCornersPolygon($building): Polygon
     {
-        $this->corners = $building['corners'];
-        return $this;
+        return self::makePolygon($building['corners']);
     }
 
-    public function getCornersPolygon(): Polygon
+    public static function getArea($building): float
     {
-        return $this->makePolygon($this->corners);
-    }
-
-    public function getArea(): float
-    {
-        $buildingPolygon = $this->getCornersPolygon();
+        $buildingPolygon = self::getCornersPolygon($building);
         return $buildingPolygon->getArea();
     }
-    private function makePolygon(array $points): Polygon
+
+    public static function findAll()
+    {
+        return Building::query()->get();
+    }
+
+    public static function findNearest(array $position)
+    {
+        $scopeRadius = 0.1;
+        return Building::query()
+            ->whereRaw(
+                'ABS(JSON_EXTRACT(POSITION, "$.lat") - :lat) < 0.1 AND ABS(JSON_EXTRACT(POSITION, "$.lng") - :lng) < 0.1',
+                ['lat' => $position['lat'], 'lng' => $position['lng']/*, 'scopeLat' => $scopeRadius, 'scopeLng' => $scopeRadius*/]
+            )
+            ->get();
+    }
+
+    private static function makePolygon(array $points): Polygon
     {
         $polygon = new Polygon();
         foreach ($points as $corner)
