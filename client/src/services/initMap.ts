@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { MAP_OPTIONS, PRECISION } from '@/constants/maps'
 import { ThreeJSOverlayView } from '@googlemaps/three'
 import { Loader } from '@googlemaps/js-api-loader'
+import type { Intersection } from 'three'
 
 export async function initMap(mapElement: HTMLElement) {
   const loader = new Loader({
@@ -42,7 +43,7 @@ export async function initMap(mapElement: HTMLElement) {
 
     selectedObjects.value = overlay
       .raycast(mousePosition)
-      .map((intersection) => intersection.object)
+      .map((intersection: Intersection) => intersection.object)
 
     if (selectedObjects.value.length) {
       if (
@@ -75,10 +76,16 @@ export async function initMap(mapElement: HTMLElement) {
     }
   })
   drawingManager.setMap(map)
+
+  const resetZoom = () => {
+    map.setZoom(MAP_OPTIONS.zoom)
+  }
+
   return {
     map,
     context: overlay,
     drawer: drawingManager,
-    selectedObjects
+    selectedObjects,
+    resetZoom
   }
 }

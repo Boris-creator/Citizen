@@ -31,4 +31,5 @@ Route::middleware('auth:sanctum')->
             return app()->call([BuildingController::class, 'search']);
         });
         Route::post('/{buildingId}/interiors', [BuildingController::class, 'getInteriors']);
+        Route::delete('/{buildingId}', [BuildingController::class, 'destroy']);
 });

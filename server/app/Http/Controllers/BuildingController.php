@@ -36,8 +36,13 @@ class BuildingController extends Controller
         return response()->json(BuildingService::findAll());
     }
 
+    public static function destroy(int $buildingId): JsonResponse {
+        return response()->json(BuildingService::destroy($buildingId));
+    }
+
     public static function getInteriors(int $buildingId): JsonResponse
     {
-        return response()->json(Building::query()->find($buildingId)->interiors);
+        $building = Building::query()->find($buildingId);
+        return response()->json($building ? $building->interiors : []);
     }
 }

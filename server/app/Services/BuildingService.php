@@ -19,9 +19,19 @@ class BuildingService {
         return $buildingPolygon->getArea();
     }
 
+    public static function getPosition($building): array
+    {
+        $cornersPolygon = self::getCornersPolygon($building);
+        $center = $cornersPolygon->getBounds()->getCenter();
+        return [
+            'lat' => $center->getLat(),
+            'lng' => $center->getLng()
+        ];
+    }
+
     public static function findAll()
     {
-        return Building::query()->get();
+        return Building::all();
     }
 
     public static function findNearest($building)
@@ -36,14 +46,10 @@ class BuildingService {
             ->get();
     }
 
-    public static function getPosition($building): array
+    public static function destroy(int $buildingId): bool
     {
-        $cornersPolygon = self::getCornersPolygon($building);
-        $center = $cornersPolygon->getBounds()->getCenter();
-        return [
-            'lat' => $center->getLat(),
-            'lng' => $center->getLng()
-        ];
+        Building::query()->find($buildingId)->delete();
+        return true;
     }
 
     private static function makePolygon(array $points): Polygon

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->decimal('price');
             $table->unsignedBigInteger('seller_id')->nullable();
             $table->foreignId('buyer_id')->constrained('users');
-            $table->foreignId('building_id')->constrained('buildings');
+            $table->foreignId('building_id')->constrained('buildings')->onDelete('cascade');;
             $table->foreign('seller_id')->references('id')->on('users');
         });
     }

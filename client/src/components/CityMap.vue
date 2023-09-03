@@ -1,27 +1,39 @@
 <template>
   <div class="map">
     <button class="map__tools" :disabled="isCreating" @click="toggleMapInteractionMode">
-      {{ mapInteractionMode ? 'Режим просмотра' : 'Добавить объект' }}
+      {{ mapInteractionMode ? $t('map.menu.readonly') : $t('map.menu.add') }}
     </button>
+    <building-menu v-show="isBuildingMenuVisible" />
     <div ref="mapElement" class="map__wrapper"></div>
   </div>
 </template>
 <script setup lang="ts">
-import type { ThreeJSOverlayView } from '@googlemaps/three'
 import { computed, onBeforeMount, onMounted, ref, watch, watchEffect } from 'vue'
 import { useBuildingsStore } from '@/stores/buildings'
 import type { BuildingData, StoredBuilding } from '@/types/building'
 import { DEFAULT_BUILDING_HEIGHT, MAP_OPTIONS, MAX_BUILDING_AREA } from '@/constants/maps'
 import LatLng = google.maps.LatLng
-import { renderBuildingExterior, renderPillar } from '@/services/renderBuildingExterior'
+import { renderPillar } from '@/services/renderBuildingExterior'
 import { initMap } from '@/services/initMap'
 import DrawingManager = google.maps.drawing.DrawingManager
-import validateBuildingPosition from '@/helpers/validateBuilding'
+import validateBuildingPosition, { getCenter } from '@/utils/validateBuilding'
 import useApiFetch from '@/composables/useApiFetch'
 import { API_ROUTES } from '@/constants/api'
 import { renderShip } from '@/services/renderShip'
+import {
+  prepareBuildingCorners,
+  prepareBuildingForRender,
+  renderBuildings
+} from '@/services/renderBuildingOnMap'
 
+import BuildingMenu from '@/components/BuildingMenu.vue'
+
+const SHIP_NAME = 'ship'
+
+const buildingStore = useBuildingsStore()
 const buildings: Map<`${number}`, BuildingData> = new Map()
+
+const mapContext: { map: google.maps.Map | null; context: any } = { map: null, context: null }
 
 const { data: buildingsData, execute: searchBuildings } = useApiFetch<Array<StoredBuilding>>(
   API_ROUTES.buildings.prefix,
@@ -40,6 +52,10 @@ const {
 })
   .post(newBuildingPayload)
   .json()
+const { onFetchResponse: onDestroyed, execute: destroy } = useApiFetch<boolean>(
+  () => `${API_ROUTES.buildings.prefix}/${buildingStore.selectedBuilding?.id}`,
+  { immediate: false }
+).delete()
 
 const mapElement = ref<HTMLElement | null>(null)
 const drawingTools = ref<DrawingManager | null>(null)
@@ -54,6 +70,8 @@ const mapInteractionMode = computed({
   }
 })
 
+const isBuildingMenuVisible = ref(false)
+
 const setMapInteractionMode = (enabled: boolean) => {
   mapInteractionMode.value = enabled ? google.maps.drawing.OverlayType.POLYGON : null
 }
@@ -61,43 +79,24 @@ const toggleMapInteractionMode = () => {
   setMapInteractionMode(mapInteractionMode.value === null)
 }
 
-function prepareBuildingCorners(points: LatLng[], context: ThreeJSOverlayView) {
-  return points.map((point) => {
-    const vector3 = context.latLngAltitudeToVector3(point)
-    return { x: vector3.x, y: vector3.z }
-  })
-}
-function prepareBuildingForRender(
-  building: StoredBuilding,
-  context: ThreeJSOverlayView
-): BuildingData {
-  return {
-    ...building,
-    type: 'polygon',
-    corners: prepareBuildingCorners(building.corners, context)
-  }
-}
-
-function renderBuildings(buildingsToRender: Array<BuildingData>, context: ThreeJSOverlayView) {
-  buildingsToRender.forEach((building) => {
-    const buildingId = `${building.id}` as `${number}`
-    if (buildings.has(buildingId)) {
-      return
-    }
-    const buildingMesh = renderBuildingExterior(building)
-
-    buildings.set(buildingId, building)
-
-    if (building.type === 'box') {
-      buildingMesh.position.copy(context.latLngAltitudeToVector3(building.position))
-    }
-    context.scene.add(buildingMesh)
-  })
-  context.requestRedraw()
-}
-
 function validatePolygonArea(polygon: google.maps.Polygon) {
   return google.maps.geometry.spherical.computeArea(polygon.getPath()) <= MAX_BUILDING_AREA
+}
+
+function destroyBuilding() {
+  const { context, map } = mapContext
+  if (!context || !map) {
+    return
+  }
+  map.setZoom(MAP_OPTIONS.zoom)
+
+  const { ship, setShipPosition } = renderShip()
+  ship.name = SHIP_NAME
+  setShipPosition(getCenter(buildingStore.selectedBuilding?.corners))
+  context.scene.add(ship)
+  setTimeout(() => {
+    destroy()
+  }, 2000)
 }
 
 onBeforeMount(() => {
@@ -105,7 +104,9 @@ onBeforeMount(() => {
 })
 
 onMounted(async () => {
-  const { context, drawer, selectedObjects } = await initMap(mapElement.value as HTMLElement)
+  const { context, map, drawer, selectedObjects } = await initMap(mapElement.value as HTMLElement)
+  mapContext.map = map
+  mapContext.context = context
   drawingTools.value = drawer
 
   const prepare = (building: StoredBuilding) => prepareBuildingForRender(building, context)
@@ -113,11 +114,6 @@ onMounted(async () => {
   const pillar = renderPillar()
   pillar.position.copy(context.latLngAltitudeToVector3(MAP_OPTIONS.center))
   context.scene.add(pillar)
-
-  const ship = renderShip()
-  ship.position.copy(context.latLngAltitudeToVector3(MAP_OPTIONS.center))
-  ship.position.setY(90)
-  context.scene.add(ship)
 
   let polygon: google.maps.Polygon | null = null
   onCreateError(() => {
@@ -136,10 +132,7 @@ onMounted(async () => {
     //@ts-ignore
     const coordinates = polygon.getPath().g as Array<LatLng>
     const path = prepareBuildingCorners(coordinates, context)
-    if (
-      !validateBuildingPosition(path, useBuildingsStore().buildings) ||
-      !validatePolygonArea(polygon)
-    ) {
+    if (!validateBuildingPosition(path, buildingStore.buildings) || !validatePolygonArea(polygon)) {
       polygon.setMap(null)
       //return
     }
@@ -154,15 +147,21 @@ onMounted(async () => {
   watch(
     buildingsData,
     (buildings) => {
-      renderBuildings(buildings.map(prepare), context)
-      useBuildingsStore().buildings = buildings.map(prepare)
+      buildingStore.buildings = buildings.map(prepare)
+    },
+    { deep: true, immediate: true }
+  )
+  watch(
+    buildingStore.buildings,
+    () => {
+      renderBuildings(buildingStore.buildings, context, buildings)
     },
     { deep: true, immediate: true }
   )
 
   watch(newBuilding, (building) => {
-    renderBuildings([prepare(building)], context)
-    useBuildingsStore().addBuilding(prepare(building))
+    renderBuildings([prepare(building)], context, buildings)
+    buildingStore.addBuilding(prepare(building))
   })
 
   watch(isCreating, (value) => {
@@ -171,7 +170,8 @@ onMounted(async () => {
 
   watchEffect(() => {
     const selectedBuilding = buildings.get(selectedObjects.value[0]?.name as `${number}`) ?? null
-    useBuildingsStore().setBuilding(selectedBuilding)
+    buildingStore.setBuilding(selectedBuilding)
+    isBuildingMenuVisible.value = selectedBuilding !== null
   })
 })
 
@@ -179,6 +179,26 @@ watch(newBuildingPayload, (value) => {
   if (value) {
     createBuilding()
   }
+})
+
+watch(
+  () => buildingStore.buildingAction,
+  (action) => {
+    if (!buildingStore.selectedBuilding) {
+      return
+    }
+    switch (action) {
+      case 'destroy':
+        destroyBuilding()
+        break
+    }
+    buildingStore.buildingAction = null
+  }
+)
+
+onDestroyed(() => {
+  buildingStore.destroyBuilding()
+  mapContext.context.scene.remove(mapContext.context.scene.getObjectByName(SHIP_NAME))
 })
 </script>
 <style scoped lang="scss">

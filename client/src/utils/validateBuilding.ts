@@ -1,8 +1,9 @@
 import type { BuildingData, Vector2Data } from '@/types/building'
 import booleanIntersects from '@turf/boolean-intersects'
-import { polygon } from '@turf/turf'
+import { center, points, polygon } from '@turf/turf'
 
-const pathToPolygon = (path: Array<Vector2Data>) => [...path, path[0]].map(({ x, y }) => [x, y])
+const pathToPoints = (path: Array<Vector2Data>) => path.map(({ x, y }) => [x, y])
+const pathToPolygon = (path: Array<Vector2Data>) => pathToPoints([...path, path[0]])
 
 export default function validateBuildingPosition(
   buildingCorners: Array<Vector2Data>,
@@ -24,4 +25,9 @@ export default function validateBuildingPosition(
   }
 
   return true
+}
+
+export function getCenter(buildingCorners: Array<Vector2Data>): Vector2Data {
+  const buildingCenter = center(points(pathToPoints(buildingCorners))).geometry.coordinates
+  return { x: buildingCenter[0], y: buildingCenter[1] }
 }

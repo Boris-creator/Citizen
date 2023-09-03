@@ -9,11 +9,20 @@ import { API_ROUTES } from '@/constants/api'
 export const useBuildingsStore = defineStore('buildings', () => {
   const selectedBuilding = ref<BuildingData | null>(null)
   const buildings = ref(buildingsData as Array<BuildingData>)
+
+  const buildingAction = ref<'destroy' | 'update' | 'interiors' | null>(null)
+
   const setBuilding = (building: BuildingData | null) => {
     selectedBuilding.value = building
   }
   const addBuilding = (building: BuildingData) => {
     buildings.value.push(building)
+  }
+  const destroyBuilding = (building = selectedBuilding.value) => {
+    const buildingIdx = buildings.value.findIndex(({ id }) => id === building?.id)
+    if (buildingIdx + 1) {
+      buildings.value.splice(buildingIdx, 1)
+    }
   }
 
   const { data: buildingInteriors, execute } = useApiFetch<Array<BuildingSerialized>>(
@@ -36,9 +45,11 @@ export const useBuildingsStore = defineStore('buildings', () => {
 
   return {
     selectedBuilding,
+    buildingAction,
     buildings,
     buildingInterior,
     setBuilding,
-    addBuilding
+    addBuilding,
+    destroyBuilding
   }
 })
