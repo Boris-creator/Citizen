@@ -31,7 +31,9 @@ class BuildingService {
 
     public static function findAll()
     {
-        return Building::all();
+        return Building::with(['owner' => function($query) {
+            $query->select(['id', 'name', 'created_at']);
+        }])->get();
     }
 
     public static function findNearest($building)

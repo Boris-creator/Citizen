@@ -12,6 +12,12 @@ use App\Services\BuildingBargainService;
 
 class BuildingController extends Controller
 {
+    /**
+     * @OA\Get(
+     *     path="/api/buildings",
+     *     @OA\Response(response="200", description="An example endpoint")
+     * )
+     */
     public static function create(BuildingStoreRequest $building): JsonResponse {
         $newBuilding = Building::query()->create([
             'position' => BuildingService::getPosition($building),
